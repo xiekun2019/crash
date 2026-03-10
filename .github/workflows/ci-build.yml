@@ -48,6 +48,10 @@ jobs:
 
         echo "EXTRA_PKGS=$EXTRA_PKGS" >> $GITHUB_ENV
         echo "CROSS_COMPILE=$CROSS_COMPILE" >> $GITHUB_ENV
+        echo "ARCH=$ARCH" >> $GITHUB_ENV
+
+    - name: Compute date string (PST/PDT)
+      run: echo "DATE=$(date +%Y%m%d)" >> $GITHUB_ENV
 
     - name: Install deps for crash-utility building
       run: |
