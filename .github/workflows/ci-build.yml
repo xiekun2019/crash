@@ -13,13 +13,13 @@ jobs:
         arch:
         - x86_64
         - aarch64
-        - s390x
-        - powerpc64
-        - x86
-        - riscv64
-        - mips
-        - alpha
-        - sparc64
+#        - s390x
+#        - powerpc64
+#        - x86
+#        - riscv64
+#        - mips
+#        - alpha
+#        - sparc64
 
     steps:
     - name: Checkout
@@ -84,6 +84,47 @@ jobs:
         sudo cp $GITHUB_WORKSPACE/libtools/include/* /usr/include/
         sudo cp -r $GITHUB_WORKSPACE/libtools/lib/* /usr/lib/
         make CROSS_COMPILE=${{ env.CROSS_COMPILE }}- -j`nproc` warn
+
+    - name: Compress files
+      run: |
+        ZIP_NAME="crash_${{ env.ARCH }}-${{ env.DATE }}.zip"
+        zip -9 "${ZIP_NAME}" crash
+        echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
+
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        git fetch --tags
+        if git rev-parse --verify --quiet "refs/tags/$TAG_NAME" >/dev/null; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+      env:
+        TAG_NAME: crash.${{ env.DATE }}
+
+    - name: Create Release
+      if: steps.check_tag.outputs.exists == 'false'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      with:
+        tag_name: crash.${{ env.DATE }}
+        release_name: Release crash.${{ env.DATE }}
+        draft: false
+        prerelease: false
+      
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.ZIP_NAME }}
+        asset_name: ${{ env.ZIP_NAME }}
+        asset_content_type: application/zip
+
     - name: Checking and Clean up
       run: |
         echo "Run command: file crash ..."
